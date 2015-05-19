@@ -1,5 +1,6 @@
 __author__ = 'd3cr1pt0r'
 
+import json
 from PySide import QtGui
 from Core.Server import Server
 from UserInterface.Parts.ListView import ListView
@@ -66,7 +67,7 @@ class ServerWindow(QtGui.QWidget):
         text = self.sendText.text()
         if text != '':
             for c in self.server.clients:
-                c.client.send(text)
+                c.client.send(json.dumps({'name': 'SERVER', 'message': text}))
             self.sendText.setText('')
             self.addLine(text)
 
@@ -76,10 +77,10 @@ class ServerWindow(QtGui.QWidget):
         self.addLine('Connection request from ' + str(clientObject.address))
 
     def onDataReceived(self, clientObject, data):
+        _data = json.loads(data)
         for c in self.server.clients:
-            if c.address != clientObject.address:
-                c.client.send(data)
-        self.addLine(data)
+            c.client.send(data)
+        self.addLine(_data['name'] + ': ' + _data['message'])
 
     def addLine(self, line=''):
         current_text = self.messageArea.toPlainText()

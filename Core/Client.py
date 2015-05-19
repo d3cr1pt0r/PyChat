@@ -1,8 +1,7 @@
 __author__ = 'd3cr1pt0r'
 
 from PySide import QtCore
-import socket
-import thread
+import socket, thread
 
 class Client(QtCore.QObject):
     onConnectionEstablished = QtCore.Signal(object)
@@ -22,6 +21,7 @@ class Client(QtCore.QObject):
         self.host = host
         self.port = port
         self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        #self.client.setblocking(0)
 
         try:
             self.client.connect((self.host, int(self.port)))
@@ -50,5 +50,12 @@ class Client(QtCore.QObject):
 
     def listenForData(self):
         while True:
-            data = self.client.recv(1024)
+            try:
+                data = self.client.recv(1024)
+            except:
+                continue
+
+            if data is None:
+                continue
+
             self.onDataReceived.emit(data)

@@ -1,6 +1,5 @@
 __author__ = 'd3cr1pt0r'
-import socket
-import thread
+import socket, thread
 from PySide import QtCore
 from Core.ClientObject import ClientObject
 
@@ -53,7 +52,6 @@ class Server(QtCore.QObject):
             clientObject = ClientObject(c)
             clientObject.address = addr
             clientObject.name = 'None'
-            clientObject.nickname = 'None'
 
             self.clients.append(clientObject)
             self.onNewConnection.emit(clientObject)

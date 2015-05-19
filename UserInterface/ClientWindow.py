@@ -1,6 +1,6 @@
 __author__ = 'd3cr1pt0r'
 
-import socket, thread
+import json
 from PySide import QtGui
 from UserInterface.Parts.ListView import ListView
 from Core.Client import Client
@@ -35,6 +35,9 @@ class ClientWindow(QtGui.QWidget):
         self.sendText = QtGui.QLineEdit()
         self.sendText.returnPressed.connect(self.onSendText)
 
+        self.nameText = QtGui.QLineEdit()
+        self.nameText.setText('noname')
+
         self.hostText = QtGui.QLineEdit()
         self.hostText.setText('93.103.137.194')
 
@@ -47,6 +50,7 @@ class ClientWindow(QtGui.QWidget):
         vlayout1.addWidget(self.messageArea)
         vlayout1.addWidget(self.sendText)
         vlayout2.addWidget(self.clientListView)
+        vlayout2.addWidget(self.nameText)
         vlayout2.addWidget(self.hostText)
         vlayout2.addWidget(self.portText)
         vlayout2.addWidget(self.toggleConnectButton)
@@ -73,11 +77,11 @@ class ClientWindow(QtGui.QWidget):
             self.isClientConnected = False
 
     def onSendText(self):
+        name = self.nameText.text()
         text = self.sendText.text()
         if text != '':
-            self.client.sendText(text)
+            self.client.sendText(json.dumps({'name': name, 'message': text}))
             self.sendText.setText('')
-            self.addLine(text)
 
     def onConnectionEstablished(self, s):
         self.addLine('Connection established to: ' + str(s))
@@ -86,7 +90,8 @@ class ClientWindow(QtGui.QWidget):
         self.addLine('Connection terminated')
 
     def onDataReceived(self, data):
-        self.addLine(data)
+        _data = json.loads(data)
+        self.addLine(_data['name'] + ': ' + _data['message'])
 
     def addLine(self, line=''):
         current_text = self.messageArea.toPlainText()
