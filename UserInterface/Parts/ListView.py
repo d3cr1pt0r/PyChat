@@ -1,6 +1,6 @@
 __author__ = 'd3cr1pt0r'
 from PySide import QtCore, QtGui
-from models.GeneralListModel import GeneralListModel
+from Models.GeneralListModel import GeneralListModel
 
 class ListView(QtGui.QListView):
 
@@ -11,3 +11,4 @@ class ListView(QtGui.QListView):
 
     def add(self, item):
         self.model.add(item)
+

@@ -6,6 +6,8 @@ from Core.ClientObject import ClientObject
 
 class Server(QtCore.QObject):
     onNewConnection = QtCore.Signal(object)
+    onClientDisconnected = QtCore.Signal(object)
+    onDataReceived = QtCore.Signal(object, object)
     clients = []
     isServerRunning = False
 
@@ -16,10 +18,10 @@ class Server(QtCore.QObject):
     def start(self):
         print 'Starting server on port ' + str(self.port)
 
-        self.socket = socket.socket()
-        self.socket.setblocking(0)
-        self.socket.bind((socket.gethostname(), self.port))
-        self.socket.listen(5)
+        self.server = socket.socket()
+        self.server.setblocking(0)
+        self.server.bind((socket.gethostname(), self.port))
+        self.server.listen(5)
         self.isServerRunning = True
 
         thread.start_new_thread(self.awaitConnections, ())
@@ -30,11 +32,11 @@ class Server(QtCore.QObject):
 
         self.isServerRunning = False
         try:
-            self.socket.shutdown(socket.SHUT_RDWR)
+            self.server.shutdown(socket.SHUT_RDWR)
         except:
             print 'Failed to shutdown socket...'
         try:
-            self.socket.close()
+            self.server.close()
         except:
             print 'Failed to close socket...'
 
@@ -44,11 +46,10 @@ class Server(QtCore.QObject):
     def awaitConnections(self):
         while True and self.isServerRunning:
             try:
-                c, addr = self.socket.accept()
+                c, addr = self.server.accept()
             except:
                 continue
 
-            c.send('yolo')
             clientObject = ClientObject(c)
             clientObject.address = addr
             clientObject.name = 'None'
@@ -63,11 +64,10 @@ class Server(QtCore.QObject):
         while self.isServerRunning:
             try:
                 data = clientObject.client.recv(1024)
-            except:
+            except socket.error, exc:
                 continue
 
             if not data:
                 continue
 
-            print 'Data recieved:'
-            print data
+            self.onDataReceived.emit(clientObject, data)

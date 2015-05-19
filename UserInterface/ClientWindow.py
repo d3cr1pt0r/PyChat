@@ -3,12 +3,18 @@ __author__ = 'd3cr1pt0r'
 import socket, thread
 from PySide import QtGui
 from UserInterface.Parts.ListView import ListView
+from Core.Client import Client
 
 class ClientWindow(QtGui.QWidget):
     client = None
+    isClientConnected = False
 
     def __init__(self, width=500, height=200, parent=None):
         super(ClientWindow, self).__init__(parent)
+        self.client = Client()
+        self.client.onConnectionEstablished.connect(self.onConnectionEstablished)
+        self.client.onConnectionTerminated.connect(self.onConnectionTerminated)
+        self.client.onDataReceived.connect(self.onDataReceived)
         self.initUI(width, height)
 
     def initUI(self, width, height):
@@ -26,6 +32,9 @@ class ClientWindow(QtGui.QWidget):
         self.messageArea.setMinimumWidth(550)
         self.messageArea.setReadOnly(True)
 
+        self.sendText = QtGui.QLineEdit()
+        self.sendText.returnPressed.connect(self.onSendText)
+
         self.hostText = QtGui.QLineEdit()
         self.hostText.setText('93.103.137.194')
 
@@ -36,6 +45,7 @@ class ClientWindow(QtGui.QWidget):
         self.toggleConnectButton.clicked.connect(self.toggleConnect)
 
         vlayout1.addWidget(self.messageArea)
+        vlayout1.addWidget(self.sendText)
         vlayout2.addWidget(self.clientListView)
         vlayout2.addWidget(self.hostText)
         vlayout2.addWidget(self.portText)
@@ -47,24 +57,36 @@ class ClientWindow(QtGui.QWidget):
         self.setLayout(hlayout)
 
     def toggleConnect(self):
-        host = self.hostText.text()
-        port = self.portText.text()
+        if not self.isClientConnected:
+            host = self.hostText.text()
+            port = self.portText.text()
 
-        self.addLine('Connecting to ' + host + ':' + port)
+            self.addLine('Connecting to ' + host + ':' + port)
+            if self.client.connectToHost(host, port):
+                self.toggleConnectButton.setText('Disconnect')
+                self.isClientConnected = True
+            else:
+                self.addLine('Failed to connect!')
+        else:
+            self.client.disconnectFromHost()
+            self.toggleConnectButton.setText('Connect')
+            self.isClientConnected = False
 
-        self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.client.connect((host, int(port)))
+    def onSendText(self):
+        text = self.sendText.text()
+        if text != '':
+            self.client.sendText(text)
+            self.sendText.setText('')
+            self.addLine(text)
 
-        self.addLine('Connected')
+    def onConnectionEstablished(self, s):
+        self.addLine('Connection established to: ' + str(s))
 
-        thread.start_new_thread(self.listenForData, ())
-        #self.client.shutdown(socket.SHUT_RDWR)
-        #self.client.close()
+    def onConnectionTerminated(self):
+        self.addLine('Connection terminated')
 
-    def listenForData(self):
-        while True:
-            data = self.client.recv(1024)
-            print str(data)
+    def onDataReceived(self, data):
+        self.addLine(data)
 
     def addLine(self, line=''):
         current_text = self.messageArea.toPlainText()

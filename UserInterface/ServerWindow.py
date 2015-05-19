@@ -3,6 +3,7 @@ __author__ = 'd3cr1pt0r'
 from PySide import QtGui
 from Core.Server import Server
 from UserInterface.Parts.ListView import ListView
+from Models.ClientListModelItem import ClientListModelItem
 
 class ServerWindow(QtGui.QWidget):
     isServerRunning = False
@@ -11,6 +12,7 @@ class ServerWindow(QtGui.QWidget):
         super(ServerWindow, self).__init__(parent)
         self.server = Server(1994)
         self.server.onNewConnection.connect(self.onNewConnection)
+        self.server.onDataReceived.connect(self.onDataReceived)
         self.initUI(width, height)
 
     def initUI(self, width, height):
@@ -28,6 +30,9 @@ class ServerWindow(QtGui.QWidget):
         self.messageArea.setMinimumWidth(550)
         self.messageArea.setReadOnly(True)
 
+        self.sendText = QtGui.QLineEdit()
+        self.sendText.returnPressed.connect(self.onSendText)
+
         self.portText = QtGui.QLineEdit()
         self.portText.setText('1994')
 
@@ -35,6 +40,7 @@ class ServerWindow(QtGui.QWidget):
         self.toggleServerButton.clicked.connect(self.toggleServer)
 
         vlayout1.addWidget(self.messageArea)
+        vlayout1.addWidget(self.sendText)
         vlayout2.addWidget(self.clientListView)
         vlayout2.addWidget(self.portText)
         vlayout2.addWidget(self.toggleServerButton)
@@ -56,8 +62,24 @@ class ServerWindow(QtGui.QWidget):
 
         self.isServerRunning = not self.isServerRunning
 
+    def onSendText(self):
+        text = self.sendText.text()
+        if text != '':
+            for c in self.server.clients:
+                c.client.send(text)
+            self.sendText.setText('')
+            self.addLine(text)
+
     def onNewConnection(self, clientObject):
+        item = ClientListModelItem(str(clientObject.address), clientObject)
+        self.clientListView.add(item)
         self.addLine('Connection request from ' + str(clientObject.address))
+
+    def onDataReceived(self, clientObject, data):
+        for c in self.server.clients:
+            if c.address != clientObject.address:
+                c.client.send(data)
+        self.addLine(data)
 
     def addLine(self, line=''):
         current_text = self.messageArea.toPlainText()
